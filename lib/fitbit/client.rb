@@ -33,15 +33,18 @@ module Fitbit
         request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
         request.body = { grant_type: 'refresh_token', refresh_token: @access_token.refresh_token }
       end
+      headers = response.headers
       response = JSON.parse(response.body)
+
+      puts response.inspect
+      puts headers.inspect
 
       opts = { refresh_token: response['refresh_token'],
                expires_in: response['expires_in'] }
 
-      # TODO: test this
       user = User.find_by_refresh_token(@access_token.refresh_token)
-      user.update!(refresh_token: response['refresh_token'], access_token: response['access_token'], token_expires_at: response['expires_in'])
-
+      token_expires_at = (headers["date"].to_time + 1.hour).to_i
+      user.update!(refresh_token: response['refresh_token'], access_token: response['access_token'], token_expires_at: token_expires_at)
       @access_token = OAuth2::AccessToken.new(@oauth2_client, response['access_token'], opts)
     end
 
